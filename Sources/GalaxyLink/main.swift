@@ -41,4 +41,12 @@ if arguments.contains("--probe-capture") {
     exit(frames > 30 ? 0 : 1)
 }
 
+if arguments.contains("--serve") {
+    let controller = StreamController()
+    controller.onStatusChange = { status in print("Status: \(status)") }
+    controller.start(preset: .default)
+    print("Serving. Ctrl-C to quit.")
+    RunLoop.main.run()
+}
+
 print("GalaxyLink scaffold")

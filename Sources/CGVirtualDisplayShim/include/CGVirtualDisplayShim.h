@@ -9,6 +9,8 @@
 
 @class CGVirtualDisplay;
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface CGVirtualDisplayDescriptor : NSObject
 @property(strong, nonatomic) dispatch_queue_t queue;
 @property(strong, nonatomic) NSString *name;
@@ -43,8 +45,10 @@
 
 @interface CGVirtualDisplay : NSObject
 @property(readonly, nonatomic) CGDirectDisplayID displayID;
-- (instancetype)initWithDescriptor:(CGVirtualDisplayDescriptor *)descriptor;
+- (nullable instancetype)initWithDescriptor:(CGVirtualDisplayDescriptor *)descriptor;
 - (BOOL)applySettings:(CGVirtualDisplaySettings *)settings;
 @end
+
+NS_ASSUME_NONNULL_END
 
 #endif

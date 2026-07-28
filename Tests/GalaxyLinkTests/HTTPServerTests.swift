@@ -38,4 +38,24 @@ final class HTTPServerTests: XCTestCase {
         let (_, resp404) = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:\(port)/nope")!)
         XCTAssertEqual((resp404 as? HTTPURLResponse)?.statusCode, 404)
     }
+
+    func testServesRealBundledWebClient() async throws {
+        let webRoot = try XCTUnwrap(WebRoot.url(), "web resources missing from bundle")
+        let port = UInt16.random(in: 20000...40000)
+        let server = HTTPServer(port: port, webRoot: webRoot)
+        try server.start()
+        defer { server.stop() }
+        try await Task.sleep(nanoseconds: 200_000_000)
+
+        for (path, expectedType) in [("/", "text/html; charset=utf-8"),
+                                     ("/client.js", "text/javascript"),
+                                     ("/manifest.webmanifest", "application/manifest+json"),
+                                     ("/icon-192.png", "image/png")] {
+            let (data, resp) = try await URLSession.shared.data(from: URL(string: "http://127.0.0.1:\(port)\(path)")!)
+            let http = try XCTUnwrap(resp as? HTTPURLResponse)
+            XCTAssertEqual(http.statusCode, 200, "path \(path)")
+            XCTAssertEqual(http.value(forHTTPHeaderField: "Content-Type"), expectedType, "path \(path)")
+            XCTAssertFalse(data.isEmpty, "path \(path)")
+        }
+    }
 }

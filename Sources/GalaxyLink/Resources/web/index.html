@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<title>GalaxyLink</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #screen { width: 100%; height: 100%; object-fit: contain; display: block;
+            image-rendering: auto; touch-action: none; }
+  #overlay { position: fixed; inset: 0; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; gap: 12px;
+             color: #ddd; font: 16px -apple-system, Roboto, sans-serif;
+             background: rgba(0,0,0,.75); text-align: center; padding: 24px; }
+  #overlay.hidden { display: none; }
+  #overlay button { font-size: 18px; padding: 12px 28px; border-radius: 10px;
+                    border: 1px solid #555; background: #1a1a1a; color: #eee; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="overlay">
+  <div id="status">Connecting…</div>
+  <button id="go" hidden>Tap for fullscreen</button>
+</div>
+<script src="client.js"></script>
+</body>
+</html>

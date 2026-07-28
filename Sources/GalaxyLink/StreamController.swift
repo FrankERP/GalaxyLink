@@ -22,7 +22,7 @@ final class StreamController {
 
     func start(preset: DisplayPreset, fps: Int = 60, bitrate: Int = 15_000_000) {
         stop()
-        guard let webRoot = Bundle.module.url(forResource: "web", withExtension: nil) else {
+        guard let webRoot = WebRoot.url() else {
             status = .failed("web resources missing from bundle"); return
         }
         guard let display = VirtualDisplay(preset: preset) else {

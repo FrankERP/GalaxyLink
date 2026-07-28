@@ -49,4 +49,10 @@ if arguments.contains("--serve") {
     RunLoop.main.run()
 }
 
-print("GalaxyLink scaffold")
+// Default: run as menu-bar app.
+import AppKit
+
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+app.run()

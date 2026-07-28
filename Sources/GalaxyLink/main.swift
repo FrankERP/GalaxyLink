@@ -20,4 +20,25 @@ if arguments.contains("--probe-display") {
     exit(online.contains(display.displayID) ? 0 : 1)
 }
 
+if arguments.contains("--probe-capture") {
+    guard let display = VirtualDisplay(preset: .default) else {
+        print("FAILED to create virtual display"); exit(1)
+    }
+    let capture = CaptureEngine()
+    var frames = 0
+    capture.onFrame = { _, _ in frames += 1 }
+    Task {
+        do {
+            try await capture.start(displayID: display.displayID,
+                                    pixelWidth: DisplayPreset.default.pixelWidth,
+                                    pixelHeight: DisplayPreset.default.pixelHeight, fps: 60)
+        } catch {
+            print("Capture failed: \(error.localizedDescription)"); exit(1)
+        }
+    }
+    RunLoop.main.run(until: Date(timeIntervalSinceNow: 5))
+    print(frames > 30 ? "PROBE OK: \(frames) frames in 5s" : "PROBE FAILED: only \(frames) frames")
+    exit(frames > 30 ? 0 : 1)
+}
+
 print("GalaxyLink scaffold")

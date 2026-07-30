@@ -48,7 +48,11 @@ final class H264Encoder {
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AverageBitRate,
                              value: bitrate as CFNumber)
         VTSessionSetProperty(session, key: kVTCompressionPropertyKey_ExpectedFrameRate, value: fps as CFNumber)
-        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, value: 2 as CFNumber)
+        // Long periodic-keyframe interval: keyframes are multi-megabyte bursts
+        // that cause visible hitches through the transport. Recovery keyframes
+        // are forced on demand (client connect, backpressure), so the periodic
+        // one is just a safety net.
+        VTSessionSetProperty(session, key: kVTCompressionPropertyKey_MaxKeyFrameIntervalDuration, value: 8 as CFNumber)
         VTCompressionSessionPrepareToEncodeFrames(session)
         self.session = session
     }

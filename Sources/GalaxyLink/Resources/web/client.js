@@ -20,13 +20,29 @@ function hideOverlay() {
   overlay.classList.add("hidden");
 }
 
+// Latest-frame-wins rendering, paced by requestAnimationFrame: if decode
+// runs ahead of the display, stale frames are dropped instead of queued,
+// keeping latency flat and motion smooth.
+let pendingFrame = null;
+let renderScheduled = false;
+
 function paint(frame) {
-  if (canvas.width !== frame.displayWidth || canvas.height !== frame.displayHeight) {
-    canvas.width = frame.displayWidth;
-    canvas.height = frame.displayHeight;
-  }
-  ctx.drawImage(frame, 0, 0);
-  frame.close();
+  if (pendingFrame) pendingFrame.close();
+  pendingFrame = frame;
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    const f = pendingFrame;
+    pendingFrame = null;
+    if (!f) return;
+    if (canvas.width !== f.displayWidth || canvas.height !== f.displayHeight) {
+      canvas.width = f.displayWidth;
+      canvas.height = f.displayHeight;
+    }
+    ctx.drawImage(f, 0, 0);
+    f.close();
+  });
 }
 
 function setupDecoder(cfg) {

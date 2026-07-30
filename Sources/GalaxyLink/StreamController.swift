@@ -19,6 +19,7 @@ final class StreamController {
     private var encoder: H264Encoder?
     private var httpServer: HTTPServer?
     private var wsServer: WebSocketServer?
+    private var keepAliveTimer: DispatchSourceTimer?
 
     func start(preset: DisplayPreset, fps: Int = 60, bitrate: Int = 15_000_000) {
         stop()
@@ -47,7 +48,26 @@ final class StreamController {
             }
             ws.onClientConnected = { encoder.forceKeyframe() }
             ws.onKeyframeNeeded = { encoder.forceKeyframe() }
-            capture.onFrame = { pixelBuffer, pts in encoder.encode(pixelBuffer, presentationTime: pts) }
+
+            // ScreenCaptureKit only delivers frames when the display content
+            // changes. Re-encode the last frame while the screen is static so
+            // late-joining clients get a picture without waiting for motion.
+            let frameSync = DispatchQueue(label: "galaxylink.lastframe")
+            var lastBuffer: CVPixelBuffer?
+            var lastFrameAt = Date.distantPast
+            capture.onFrame = { pixelBuffer, pts in
+                frameSync.async { lastBuffer = pixelBuffer; lastFrameAt = Date() }
+                encoder.encode(pixelBuffer, presentationTime: pts)
+            }
+            let timer = DispatchSource.makeTimerSource(queue: frameSync)
+            timer.schedule(deadline: .now() + 0.5, repeating: 0.5)
+            timer.setEventHandler {
+                guard let buffer = lastBuffer,
+                      Date().timeIntervalSince(lastFrameAt) > 0.45 else { return }
+                encoder.encode(buffer, presentationTime: CMClockGetTime(CMClockGetHostTimeClock()))
+            }
+            timer.resume()
+            self.keepAliveTimer = timer
 
             try http.start()
             try ws.start()
@@ -78,6 +98,8 @@ final class StreamController {
     }
 
     func stop() {
+        keepAliveTimer?.cancel()
+        keepAliveTimer = nil
         let capture = self.capture
         Task { await capture?.stop() }
         encoder?.invalidate()

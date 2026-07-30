@@ -4,7 +4,7 @@ const canvas = document.getElementById("screen");
 const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
 const overlay = document.getElementById("overlay");
 const statusEl = document.getElementById("status");
-const goBtn = document.getElementById("go");
+const hint = document.getElementById("hint");
 
 let ws = null;
 let decoder = null;
@@ -39,7 +39,7 @@ function setupDecoder(cfg) {
   // No `description` => Annex-B mode; keyframes carry SPS/PPS in-band.
   decoder.configure({ codec: cfg.codec, optimizeForLatency: true });
   hideOverlay();
-  goBtn.hidden = false;
+  updateHint();
 }
 
 function handleMessage(buffer) {
@@ -87,11 +87,19 @@ function connect() {
   ws.onerror = reconnect;
 }
 
-goBtn.addEventListener("click", async () => {
+function updateHint() {
+  // Show the hint whenever the stream is up but we're not fullscreen.
+  hint.hidden = !!document.fullscreenElement || !decoder || decoder.state !== "configured";
+}
+
+async function enterFullscreen() {
+  if (document.fullscreenElement) return;
   try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch (_) {}
   try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (_) {}
-  hideOverlay();
-});
+}
+
+document.addEventListener("click", enterFullscreen);
+document.addEventListener("fullscreenchange", updateHint);
 
 async function acquireWakeLock() {
   try { wakeLock = await navigator.wakeLock.request("screen"); } catch (_) {}

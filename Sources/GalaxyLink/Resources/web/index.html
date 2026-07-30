@@ -15,16 +15,19 @@
              color: #ddd; font: 16px -apple-system, Roboto, sans-serif;
              background: rgba(0,0,0,.75); text-align: center; padding: 24px; }
   #overlay.hidden { display: none; }
-  #overlay button { font-size: 18px; padding: 12px 28px; border-radius: 10px;
-                    border: 1px solid #555; background: #1a1a1a; color: #eee; }
+  #hint { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+          color: #ccc; font: 14px -apple-system, Roboto, sans-serif;
+          background: rgba(20,20,20,.85); border: 1px solid #444;
+          padding: 8px 16px; border-radius: 999px; pointer-events: none; }
+  #hint[hidden] { display: none; }
 </style>
 </head>
 <body>
 <canvas id="screen"></canvas>
 <div id="overlay">
   <div id="status">Connecting…</div>
-  <button id="go" hidden>Tap for fullscreen</button>
 </div>
+<div id="hint" hidden>Tap anywhere for fullscreen</div>
 <script src="client.js"></script>
 </body>
 </html>

@@ -92,6 +92,7 @@ function hideOverlay() {
 // runs ahead of the display, stale frames are dropped instead of queued,
 // keeping latency flat and motion smooth.
 let pendingFrame = null;
+let inFlightFrame = null; // frame the GPU consumed last draw; closed one cycle later
 let renderScheduled = false;
 
 function paint(frame) {
@@ -106,13 +107,19 @@ function paint(frame) {
     pendingFrame = null;
     if (!f) return;
     renderer.draw(f);
-    f.close();
+    // Closing immediately can invalidate the frame before the GPU has
+    // sampled it on some Android drivers (occasional garbage pixels), so
+    // keep it alive until the next draw completes.
+    if (inFlightFrame) inFlightFrame.close();
+    inFlightFrame = f;
     counters.paint++;
   });
 }
 
 function setupDecoder(cfg) {
   if (decoder) { try { decoder.close(); } catch (_) {} }
+  if (pendingFrame) { pendingFrame.close(); pendingFrame = null; }
+  if (inFlightFrame) { inFlightFrame.close(); inFlightFrame = null; }
   seenKeyframe = false;
   decoder = new VideoDecoder({
     output: paint,

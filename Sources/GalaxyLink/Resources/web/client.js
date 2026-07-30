@@ -71,7 +71,13 @@ function reconnect() {
 
 function connect() {
   if (!("VideoDecoder" in window)) {
-    setStatus("This browser lacks WebCodecs. Use Chrome or Samsung Internet.");
+    if (!window.isSecureContext) {
+      setStatus("WebCodecs needs a secure context, and plain http:// over the network is not one. " +
+                "Either use USB mode (open http://localhost:8080 via adb reverse), or in Chrome enable " +
+                "chrome://flags/#unsafely-treat-insecure-origin-as-secure for " + location.origin + " and relaunch.");
+    } else {
+      setStatus("This browser lacks WebCodecs. Use Chrome or Samsung Internet.");
+    }
     return;
   }
   ws = new WebSocket(`ws://${location.hostname}:8081`);

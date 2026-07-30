@@ -70,6 +70,14 @@ grant — toggle it off/on there if capture stops working after a rebuild.
 The page keeps the screen awake (wake lock) and auto-reconnects if the Mac app
 restarts.
 
+> **Wi-Fi requires a one-time browser flag.** WebCodecs is only available in
+> "secure contexts" (HTTPS or localhost), and the Wi-Fi URL is plain HTTP over
+> the network. On the tablet, open
+> `chrome://flags/#unsafely-treat-insecure-origin-as-secure`, add the GalaxyLink
+> URL (e.g. `http://192.168.1.23:8080`), set it to **Enabled**, and relaunch
+> Chrome. Redo this if the Mac's IP changes. USB mode needs no flag, because
+> `http://localhost:8080` is already a secure context.
+
 ## Tablet setup — USB (lowest latency)
 
 One-time tablet setup:

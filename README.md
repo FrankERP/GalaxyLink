@@ -111,6 +111,13 @@ Run after any pipeline change:
 
 ## Known limitations
 
+- **DRM video blanks while streaming.** While any screen-capture session is
+  active, macOS blanks FairPlay/Widevine-protected video (Netflix, Apple TV+,
+  etc.) on **all** displays — including the Mac's own screen, and regardless of
+  the player app or capture filter (verified experimentally: excluding the app
+  from the capture filter does not help). This affects every capture-based
+  mirror, not just GalaxyLink. Workaround: stop streaming while watching
+  (the tablet client auto-reconnects when you start again).
 - **Display only** — tablet touch/S Pen does not control the Mac yet. The wire
   protocol reserves frame types `0x10+` for future input events.
 - **Single client** at full quality; extra viewers share the same stream.

@@ -1,7 +1,62 @@
 "use strict";
 
 const canvas = document.getElementById("screen");
-const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+
+// GPU renderer: WebGL texture upload is far faster than 2D drawImage for
+// large VideoFrames on Android. Falls back to 2D where WebGL is unavailable.
+function createRenderer(cv) {
+  const gl = cv.getContext("webgl", { alpha: false, antialias: false });
+  if (!gl) {
+    const c2d = cv.getContext("2d", { alpha: false, desynchronized: true });
+    return {
+      draw(frame) {
+        if (cv.width !== frame.displayWidth || cv.height !== frame.displayHeight) {
+          cv.width = frame.displayWidth;
+          cv.height = frame.displayHeight;
+        }
+        c2d.drawImage(frame, 0, 0);
+      },
+    };
+  }
+  const vsSrc = "attribute vec2 pos; varying vec2 uv;" +
+    "void main(){ uv = vec2((pos.x+1.0)*0.5, (1.0-pos.y)*0.5); gl_Position = vec4(pos,0.0,1.0); }";
+  const fsSrc = "precision mediump float; varying vec2 uv; uniform sampler2D tex;" +
+    "void main(){ gl_FragColor = texture2D(tex, uv); }";
+  const program = gl.createProgram();
+  for (const [type, src] of [[gl.VERTEX_SHADER, vsSrc], [gl.FRAGMENT_SHADER, fsSrc]]) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    gl.attachShader(program, shader);
+  }
+  gl.linkProgram(program);
+  gl.useProgram(program);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const posLoc = gl.getAttribLocation(program, "pos");
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return {
+    draw(frame) {
+      if (cv.width !== frame.displayWidth || cv.height !== frame.displayHeight) {
+        cv.width = frame.displayWidth;
+        cv.height = frame.displayHeight;
+        gl.viewport(0, 0, cv.width, cv.height);
+      }
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, frame);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    },
+  };
+}
+
+const renderer = createRenderer(canvas);
 const overlay = document.getElementById("overlay");
 const statusEl = document.getElementById("status");
 const hint = document.getElementById("hint");
@@ -50,11 +105,7 @@ function paint(frame) {
     const f = pendingFrame;
     pendingFrame = null;
     if (!f) return;
-    if (canvas.width !== f.displayWidth || canvas.height !== f.displayHeight) {
-      canvas.width = f.displayWidth;
-      canvas.height = f.displayHeight;
-    }
-    ctx.drawImage(f, 0, 0);
+    renderer.draw(f);
     f.close();
     counters.paint++;
   });

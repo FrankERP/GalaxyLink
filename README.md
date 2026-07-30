@@ -63,7 +63,7 @@ grant — toggle it off/on there if capture stops working after a rebuild.
 1. Mac menu bar ▸ ⬒ ▸ **Start Streaming**.
 2. On the tablet, open the URL shown in the menu (e.g. `http://192.168.1.23:8080`)
    in Chrome or Samsung Internet — or scan the QR code.
-3. Tap **Tap for fullscreen**.
+3. Tap anywhere on the stream to go fullscreen.
 4. Optional, nicer: Chrome ⋮ ▸ **Add to Home screen** installs GalaxyLink as a
    PWA — launching from the home screen gives fullscreen with zero browser chrome.
 

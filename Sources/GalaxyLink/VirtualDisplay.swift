@@ -28,12 +28,37 @@ final class VirtualDisplay {
         guard let display = CGVirtualDisplay(descriptor: descriptor) else { return nil }
 
         let settings = CGVirtualDisplaySettings()
-        settings.hiDPI = preset.hiDPI ? 1 : 0
-        settings.modes = [CGVirtualDisplayMode(width: UInt32(preset.pixelWidth),
-                                               height: UInt32(preset.pixelHeight),
+        // hiDPI is the backing scale factor (2 = Retina), not a boolean.
+        // Modes are declared in points; maxPixels carries the full pixels.
+        settings.hiDPI = preset.hiDPI ? 2 : 1
+        settings.modes = [CGVirtualDisplayMode(width: UInt32(preset.pointSize.width),
+                                               height: UInt32(preset.pointSize.height),
                                                refreshRate: refreshRate)]
         guard display.apply(settings) else { return nil }
         self.display = display
         self.displayID = display.displayID
+
+        // The WindowServer defaults to a synthesized 1x mode; the true Retina
+        // mode (points @2x backing) is hidden behind the duplicate-low-res
+        // flag and must be selected explicitly.
+        Self.selectMode(displayID: display.displayID, preset: preset)
+    }
+
+    var appliedHiDPI: UInt32 { display.hiDPI }
+
+    @discardableResult
+    private static func selectMode(displayID: CGDirectDisplayID, preset: DisplayPreset) -> Bool {
+        let options = [kCGDisplayShowDuplicateLowResolutionModes: kCFBooleanTrue] as CFDictionary
+        guard let modes = CGDisplayCopyAllDisplayModes(displayID, options) as? [CGDisplayMode],
+              let target = modes.first(where: { mode in
+                  mode.width == preset.pointSize.width &&
+                  mode.height == preset.pointSize.height &&
+                  mode.pixelWidth == preset.pixelWidth &&
+                  mode.pixelHeight == preset.pixelHeight
+              }) else { return false }
+        var config: CGDisplayConfigRef?
+        guard CGBeginDisplayConfiguration(&config) == .success else { return false }
+        CGConfigureDisplayWithDisplayMode(config, displayID, target, nil)
+        return CGCompleteDisplayConfiguration(config, .permanently) == .success
     }
 }

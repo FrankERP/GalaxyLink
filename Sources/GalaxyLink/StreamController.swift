@@ -21,7 +21,7 @@ final class StreamController {
     private var wsServer: WebSocketServer?
     private var keepAliveTimer: DispatchSourceTimer?
 
-    func start(preset: DisplayPreset, fps: Int = 60, bitrate: Int = 15_000_000) {
+    func start(preset: DisplayPreset, fps: Int = 60, bitrate: Int = 30_000_000) {
         stop()
         guard let webRoot = WebRoot.url() else {
             status = .failed("web resources missing from bundle"); return

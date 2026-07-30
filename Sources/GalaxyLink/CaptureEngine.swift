@@ -19,7 +19,8 @@ final class CaptureEngine: NSObject, SCStreamOutput, SCStreamDelegate {
         config.height = pixelHeight
         config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
         config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(fps))
-        config.queueDepth = 5
+        // Headroom for buffers we retain (keep-alive frame + encoder in-flight).
+        config.queueDepth = 8
         config.showsCursor = true
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)

@@ -109,6 +109,14 @@ Run after any pipeline change:
 7. USB: **Enable USB Mode**, then `http://localhost:8080` on the tablet works
    with Wi-Fi disabled.
 
+## Troubleshooting
+
+- Append `?stats=1` to the client URL to show a live overlay with received /
+  decoded / painted frames per second and the decode queue depth — it tells
+  you whether a stutter comes from the network, the decoder, or rendering.
+- After unplugging the USB cable, re-enable USB mode (menu ▸ Enable USB Mode)
+  to recreate the `adb reverse` tunnels.
+
 ## Known limitations
 
 - **DRM video blanks while streaming.** While any screen-capture session is

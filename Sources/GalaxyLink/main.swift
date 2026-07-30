@@ -91,7 +91,16 @@ if arguments.contains("--probe-capture") {
 if arguments.contains("--serve") {
     let controller = StreamController()
     controller.onStatusChange = { status in print("Status: \(status)") }
-    controller.start(preset: .default)
+    var preset: DisplayPreset = .default
+    if let flagIndex = arguments.firstIndex(of: "--preset"), flagIndex + 1 < arguments.count {
+        switch arguments[flagIndex + 1] {
+        case "balanced": preset = DisplayPreset.all[1]
+        case "compat": preset = DisplayPreset.all[2]
+        default: break
+        }
+    }
+    print("Preset: \(preset.name)")
+    controller.start(preset: preset)
     print("Serving. Ctrl-C to quit.")
     RunLoop.main.run()
 }

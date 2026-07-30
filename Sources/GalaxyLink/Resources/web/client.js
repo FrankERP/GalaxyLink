@@ -11,6 +11,19 @@ let decoder = null;
 let seenKeyframe = false;
 let wakeLock = null;
 
+// Diagnostics overlay, enabled with ?stats=1
+const statsEl = document.getElementById("stats");
+const counters = { recv: 0, dec: 0, paint: 0 };
+if (new URLSearchParams(location.search).get("stats") === "1") {
+  statsEl.hidden = false;
+  setInterval(() => {
+    const q = decoder && decoder.state === "configured" ? decoder.decodeQueueSize : "-";
+    statsEl.textContent =
+      `recv ${counters.recv}/s  dec ${counters.dec}/s  paint ${counters.paint}/s  queue ${q}`;
+    counters.recv = counters.dec = counters.paint = 0;
+  }, 1000);
+}
+
 function setStatus(text) {
   statusEl.textContent = text;
   overlay.classList.remove("hidden");
@@ -27,6 +40,7 @@ let pendingFrame = null;
 let renderScheduled = false;
 
 function paint(frame) {
+  counters.dec++;
   if (pendingFrame) pendingFrame.close();
   pendingFrame = frame;
   if (renderScheduled) return;
@@ -42,6 +56,7 @@ function paint(frame) {
     }
     ctx.drawImage(f, 0, 0);
     f.close();
+    counters.paint++;
   });
 }
 
@@ -65,6 +80,7 @@ function handleMessage(buffer) {
     const cfg = JSON.parse(new TextDecoder().decode(new Uint8Array(buffer, 1)));
     setupDecoder(cfg);
   } else if (type === 0x02 && decoder && decoder.state === "configured") {
+    counters.recv++;
     const isKey = (view.getUint8(1) & 1) === 1;
     if (!seenKeyframe && !isKey) return;
     seenKeyframe = true;

@@ -10,6 +10,7 @@ enum PairingCopy {
     static let sameWiFi = "Same Wi-Fi"
     static let needsScreenRecording = "GalaxyLink needs Screen Recording"
     static let openSettings = "Open Settings"
+    static let cableReady = "Cable ready."
 }
 
 enum FirstRun {
@@ -32,7 +33,7 @@ enum CableAlert {
         let detail: String?
     }
 
-    static let ready = "Cable ready."
+    static let ready = PairingCopy.cableReady
     static let noTablet = "No tablet. Plug in, turn on USB debugging, try again."
     static let adbMissing = "adb not found"
     static let adbMissingDetail = "Install Android platform-tools (brew install android-platform-tools) and retry."
@@ -46,6 +47,11 @@ enum CableAlert {
         case .failure(.noDevice), .failure(.commandFailed(_)):
             return Content(message: noTablet, detail: nil)
         }
+    }
+
+    static func presentsAlert(for result: Result<String, USBHelper.USBError>) -> Bool {
+        if case .failure = result { return true }
+        return false
     }
 }
 

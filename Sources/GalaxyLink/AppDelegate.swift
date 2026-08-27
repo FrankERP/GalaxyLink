@@ -112,13 +112,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func enableUSB() {
-        let content = CableAlert.content(for: USBHelper.enableUSBMode())
-        let alert = NSAlert()
-        alert.messageText = content.message
-        if let detail = content.detail {
-            alert.informativeText = detail
+        let result = USBHelper.enableUSBMode()
+        if CableAlert.presentsAlert(for: result) {
+            pairingPanel?.showCableReady(false)
+            let content = CableAlert.content(for: result)
+            let alert = NSAlert()
+            alert.messageText = content.message
+            if let detail = content.detail {
+                alert.informativeText = detail
+            }
+            alert.runModal()
+            return
         }
-        alert.runModal()
+        pairingPanel?.showCableReady()
+        if pairingPanel?.window?.isVisible != true {
+            pairingPanel?.present()
+        }
     }
 
     @objc private func quit() {

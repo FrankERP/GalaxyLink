@@ -10,12 +10,14 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
     private var lineLabel: NSTextField!
     private var useCableButton: NSButton!
     private var usbURLButton: NSButton!
+    private var cableReadyLabel: NSTextField!
     private var startButton: NSButton!
     private var wifiToggle: NSButton!
     private var wifiURLButton: NSButton!
     private var wifiDetail: NSStackView!
     private var outerStack: NSStackView!
     private var wifiExpanded = false
+    private var cableIsReady = false
     private var copiedReset: DispatchWorkItem?
 
     init(onUseCable: @escaping () -> Void, onStart: @escaping () -> Void) {
@@ -79,9 +81,12 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
 
         usbURLButton = Self.copyableURLButton(title: Pairing.usbURL, target: self, action: #selector(copyUSBURL))
 
+        cableReadyLabel = Self.label(PairingCopy.cableReady, font: .systemFont(ofSize: 13, weight: .medium))
+        cableReadyLabel.isHidden = true
+
         startButton = NSButton(title: PairingCopy.start, target: self, action: #selector(startTapped))
-        startButton.bezelStyle = .recessed
-        startButton.controlSize = .small
+        startButton.bezelStyle = .rounded
+        startButton.controlSize = .large
 
         wifiToggle = NSButton(title: PairingCopy.sameWiFi, target: self, action: #selector(toggleWiFi))
         wifiToggle.isBordered = false
@@ -96,14 +101,15 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
         wifiDetail.alignment = .centerX
 
         outerStack = NSStackView(views: [
-            headingLabel, deniedStack, lineLabel, useCableButton, usbURLButton, startButton, wifiToggle, wifiDetail,
+            headingLabel, deniedStack, lineLabel, useCableButton, usbURLButton, cableReadyLabel, startButton, wifiToggle, wifiDetail,
         ])
         outerStack.orientation = .vertical
         outerStack.alignment = .centerX
         outerStack.spacing = 14
         outerStack.setCustomSpacing(20, after: headingLabel)
         outerStack.setCustomSpacing(18, after: deniedStack)
-        outerStack.setCustomSpacing(18, after: usbURLButton)
+        outerStack.setCustomSpacing(8, after: usbURLButton)
+        outerStack.setCustomSpacing(18, after: cableReadyLabel)
         outerStack.setCustomSpacing(22, after: startButton)
         outerStack.translatesAutoresizingMaskIntoConstraints = false
         content.addSubview(outerStack)
@@ -131,7 +137,14 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
             openSettingsButton.keyEquivalent = "\r"
         }
         wifiDetail.isHidden = !wifiExpanded
+        cableReadyLabel.isHidden = !cableIsReady
         updateWiFiToggleImage()
+        fitWindow()
+    }
+
+    func showCableReady(_ ready: Bool = true) {
+        cableIsReady = ready
+        cableReadyLabel.isHidden = !ready
         fitWindow()
     }
 

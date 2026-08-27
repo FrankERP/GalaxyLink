@@ -35,6 +35,7 @@ final class PairingTests: XCTestCase {
         XCTAssertEqual(PairingCopy.sameWiFi, "Same Wi-Fi")
         XCTAssertEqual(PairingCopy.needsScreenRecording, "GalaxyLink needs Screen Recording")
         XCTAssertEqual(PairingCopy.openSettings, "Open Settings")
+        XCTAssertEqual(PairingCopy.cableReady, "Cable ready.")
         XCTAssertEqual(PairingCopy.useACable, MenuCopy.useACable)
     }
 
@@ -48,6 +49,7 @@ final class PairingTests: XCTestCase {
             PairingCopy.sameWiFi,
             PairingCopy.needsScreenRecording,
             PairingCopy.openSettings,
+            PairingCopy.cableReady,
         ].joined(separator: " ")
         XCTAssertFalse(card.contains("Scan"))
         XCTAssertFalse(card.contains("QR"))
@@ -98,22 +100,27 @@ final class PairingTests: XCTestCase {
     func testCableAlerts() {
         XCTAssertEqual(CableAlert.content(for: .success("ignored")).message, "Cable ready.")
         XCTAssertNil(CableAlert.content(for: .success("ignored")).detail)
+        XCTAssertFalse(CableAlert.presentsAlert(for: .success("ignored")),
+                       "success must not present an NSAlert")
         XCTAssertFalse(CableAlert.content(for: .success("ignored")).message.contains("USB mode"))
         XCTAssertFalse(CableAlert.ready.lowercased().contains("brew"))
 
         let missing = CableAlert.content(for: .failure(.adbNotFound))
         XCTAssertEqual(missing.message, "adb not found")
         XCTAssertEqual(missing.detail, "Install Android platform-tools (brew install android-platform-tools) and retry.")
+        XCTAssertTrue(CableAlert.presentsAlert(for: .failure(.adbNotFound)))
         XCTAssertTrue(missing.detail?.contains("brew") == true)
 
         let noTablet = CableAlert.content(for: .failure(.noDevice))
         XCTAssertEqual(noTablet.message, "No tablet. Plug in, turn on USB debugging, try again.")
         XCTAssertNil(noTablet.detail)
+        XCTAssertTrue(CableAlert.presentsAlert(for: .failure(.noDevice)))
         XCTAssertFalse((noTablet.detail ?? "").contains("brew"))
 
         let reverse = CableAlert.content(for: .failure(.commandFailed("adb: error")))
         XCTAssertEqual(reverse.message, "No tablet. Plug in, turn on USB debugging, try again.")
         XCTAssertNil(reverse.detail)
-        XCTAssertFalse((reverse.detail ?? noTablet.message).contains("brew"))
+        XCTAssertTrue(CableAlert.presentsAlert(for: .failure(.commandFailed("adb: error"))))
+        XCTAssertFalse((reverse.detail ?? "").contains("brew"))
     }
 }

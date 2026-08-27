@@ -28,7 +28,7 @@ with a WebCodecs-capable browser (current Chrome / Samsung Internet) works.
 │                     Embedded HTTP + WebSocket server               │
 │                     (ports 8080 http / 8081 ws)                    │
 └───────────────────────────────────┬────────────────────────────────┘
-                    Wi-Fi (LAN)  or  USB (adb reverse)
+                    Wi-Fi (LAN)  or  Use a cable
 ┌───────────────────────────────────┴────────────────────────────────┐
 │ Tablet browser: WebSocket → WebCodecs VideoDecoder → WebGL canvas  │
 │ Fullscreen + wake lock + auto-reconnect (single static page / PWA) │

@@ -5,6 +5,7 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
     private let onStart: () -> Void
 
     private var headingLabel: NSTextField!
+    private var openSettingsButton: NSButton!
     private var deniedStack: NSStackView!
     private var lineLabel: NSTextField!
     private var useCableButton: NSButton!
@@ -26,7 +27,7 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        panel.title = PairingCopy.title
+        panel.title = PairingCopy.windowTitle
         panel.isFloatingPanel = true
         panel.level = .floating
         panel.hidesOnDeactivate = false
@@ -61,7 +62,7 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
 
         let deniedMessage = Self.label(PairingCopy.needsScreenRecording,
                                        font: .systemFont(ofSize: 15, weight: .medium))
-        let openSettingsButton = NSButton(title: PairingCopy.openSettings, target: self, action: #selector(openSettings))
+        openSettingsButton = NSButton(title: PairingCopy.openSettings, target: self, action: #selector(openSettings))
         openSettingsButton.bezelStyle = .rounded
         openSettingsButton.controlSize = .large
         deniedStack = NSStackView(views: [deniedMessage, openSettingsButton])
@@ -75,13 +76,12 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
         useCableButton = NSButton(title: PairingCopy.useACable, target: self, action: #selector(useCableTapped))
         useCableButton.bezelStyle = .rounded
         useCableButton.controlSize = .large
-        useCableButton.keyEquivalent = "\r"
 
         usbURLButton = Self.copyableURLButton(title: Pairing.usbURL, target: self, action: #selector(copyUSBURL))
 
         startButton = NSButton(title: PairingCopy.start, target: self, action: #selector(startTapped))
-        startButton.bezelStyle = .rounded
-        startButton.controlSize = .large
+        startButton.bezelStyle = .recessed
+        startButton.controlSize = .small
 
         wifiToggle = NSButton(title: PairingCopy.sameWiFi, target: self, action: #selector(toggleWiFi))
         wifiToggle.isBordered = false
@@ -121,7 +121,15 @@ final class PairingPanelController: NSWindowController, NSWindowDelegate {
         copiedReset?.cancel()
         usbURLButton.title = Pairing.usbURL
         wifiURLButton.title = Pairing.wifiURL()
-        deniedStack.isHidden = ScreenRecordingAccess.isGranted
+        let granted = ScreenRecordingAccess.isGranted
+        deniedStack.isHidden = granted
+        if granted {
+            useCableButton.keyEquivalent = "\r"
+            openSettingsButton.keyEquivalent = ""
+        } else {
+            useCableButton.keyEquivalent = ""
+            openSettingsButton.keyEquivalent = "\r"
+        }
         wifiDetail.isHidden = !wifiExpanded
         updateWiFiToggleImage()
         fitWindow()

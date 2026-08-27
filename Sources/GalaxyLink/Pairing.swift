@@ -2,13 +2,51 @@ import AppKit
 import CoreGraphics
 
 enum PairingCopy {
+    static let windowTitle = "GalaxyLink"
     static let title = "Your second screen"
-    static let line = "Plug in the tablet. Then open http://localhost:8080"
+    static let line = "Plug in the tablet."
     static let useACable = "Use a cable"
     static let start = "Start"
     static let sameWiFi = "Same Wi-Fi"
     static let needsScreenRecording = "GalaxyLink needs Screen Recording"
     static let openSettings = "Open Settings"
+}
+
+enum FirstRun {
+    static let defaultsKey = "pairing.didCompleteFirstStart"
+
+    static func shouldShowPairing(defaults: UserDefaults = .standard) -> Bool {
+        !defaults.bool(forKey: defaultsKey)
+    }
+
+    static func markCompleteIfRunning(_ status: StreamController.Status, defaults: UserDefaults = .standard) {
+        if case .running = status {
+            defaults.set(true, forKey: defaultsKey)
+        }
+    }
+}
+
+enum CableAlert {
+    struct Content: Equatable {
+        let message: String
+        let detail: String?
+    }
+
+    static let ready = "Cable ready."
+    static let noTablet = "No tablet. Plug in, turn on USB debugging, try again."
+    static let adbMissing = "adb not found"
+    static let adbMissingDetail = "Install Android platform-tools (brew install android-platform-tools) and retry."
+
+    static func content(for result: Result<String, USBHelper.USBError>) -> Content {
+        switch result {
+        case .success(_):
+            return Content(message: ready, detail: nil)
+        case .failure(.adbNotFound):
+            return Content(message: adbMissing, detail: adbMissingDetail)
+        case .failure(.noDevice), .failure(.commandFailed(_)):
+            return Content(message: noTablet, detail: nil)
+        }
+    }
 }
 
 enum MenuCopy {
@@ -20,6 +58,10 @@ enum MenuCopy {
 
     static func statusLine(isOn: Bool) -> String {
         isOn ? "GalaxyLink · On" : "GalaxyLink · Off"
+    }
+
+    static func presetParentTitle(_ preset: DisplayPreset) -> String {
+        preset.menuTitle
     }
 }
 

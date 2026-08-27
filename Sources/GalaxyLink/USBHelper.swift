@@ -44,7 +44,7 @@ enum USBHelper {
                 return .failure(error)
             }
         }
-        return .success("USB ready — open \(Pairing.usbURL) on the tablet")
+        return .success(CableAlert.ready)
     }
 
     private static func run(_ launchPath: String, _ args: [String]) -> Result<String, USBError> {

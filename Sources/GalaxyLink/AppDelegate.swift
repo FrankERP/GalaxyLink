@@ -1,8 +1,6 @@
 import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private static let firstLaunchKey = "pairing.didShowOnFirstLaunch"
-
     private var statusItem: NSStatusItem!
     private let controller = StreamController()
     private var pairingPanel: PairingPanelController?
@@ -19,8 +17,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "⬒"
         statusItem.button?.toolTip = "GalaxyLink"
-        controller.onStatusChange = { [weak self] _ in
-            DispatchQueue.main.async { self?.rebuildMenu() }
+        controller.onStatusChange = { [weak self] status in
+            DispatchQueue.main.async {
+                FirstRun.markCompleteIfRunning(status)
+                self?.rebuildMenu()
+            }
         }
         controller.startServers()
         pairingPanel = PairingPanelController(
@@ -29,8 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         rebuildMenu()
 
-        if !UserDefaults.standard.bool(forKey: Self.firstLaunchKey) {
-            UserDefaults.standard.set(true, forKey: Self.firstLaunchKey)
+        if FirstRun.shouldShowPairing() {
             pairingPanel?.present()
         }
     }
@@ -70,7 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.target = self
             presetMenu.addItem(item)
         }
-        let presetItem = menu.addItem(withTitle: "\(currentPreset.menuTitle) ▾", action: nil, keyEquivalent: "")
+        let presetItem = menu.addItem(withTitle: MenuCopy.presetParentTitle(currentPreset), action: nil, keyEquivalent: "")
         menu.setSubmenu(presetMenu, for: presetItem)
 
         menu.addItem(.separator())
@@ -112,20 +112,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func enableUSB() {
+        let content = CableAlert.content(for: USBHelper.enableUSBMode())
         let alert = NSAlert()
-        switch USBHelper.enableUSBMode() {
-        case .success(let message):
-            alert.messageText = "USB mode enabled"
-            alert.informativeText = message
-        case .failure(.adbNotFound):
-            alert.messageText = "adb not found"
-            alert.informativeText = "Install Android platform-tools (brew install android-platform-tools) and retry."
-        case .failure(.noDevice):
-            alert.messageText = "No tablet detected"
-            alert.informativeText = "Connect the tablet via USB, enable USB debugging (Settings ▸ Developer options), accept the prompt on the tablet, and retry."
-        case .failure(.commandFailed(let output)):
-            alert.messageText = "adb reverse failed"
-            alert.informativeText = output
+        alert.messageText = content.message
+        if let detail = content.detail {
+            alert.informativeText = detail
         }
         alert.runModal()
     }

@@ -59,7 +59,12 @@ function createRenderer(cv) {
 const renderer = createRenderer(canvas);
 const overlay = document.getElementById("overlay");
 const statusEl = document.getElementById("status");
+const detailEl = document.getElementById("detail");
 const hint = document.getElementById("hint");
+const a2hs = document.getElementById("a2hs");
+const A2HS_KEY = "galaxylink.homescreenHint";
+let a2hsTimer = null;
+let a2hsOffered = false;
 
 let ws = null;
 let decoder = null;
@@ -79,8 +84,9 @@ if (new URLSearchParams(location.search).get("stats") === "1") {
   }, 1000);
 }
 
-function setStatus(text) {
+function setStatus(text, detail) {
   statusEl.textContent = text;
+  detailEl.textContent = detail || "";
   overlay.classList.remove("hidden");
 }
 
@@ -97,6 +103,7 @@ let renderScheduled = false;
 
 function paint(frame) {
   counters.dec++;
+  maybeOfferA2hs();
   if (pendingFrame) pendingFrame.close();
   pendingFrame = frame;
   if (renderScheduled) return;
@@ -155,21 +162,20 @@ let reconnectTimer = null;
 function reconnect() {
   if (reconnectTimer) return;
   if (ws) { try { ws.close(); } catch (_) {} ws = null; }
-  setStatus("Reconnecting…");
+  setStatus("Looking for your Mac…");
   reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, 1000);
 }
 
 function connect() {
   if (!("VideoDecoder" in window)) {
     if (!window.isSecureContext) {
-      setStatus("WebCodecs needs a secure context, and plain http:// over the network is not one. " +
-                "Either use USB mode (open http://localhost:8080 via adb reverse), or in Chrome enable " +
-                "chrome://flags/#unsafely-treat-insecure-origin-as-secure for " + location.origin + " and relaunch.");
+      setStatus("This tablet needs a trusted connection.", "Use a cable.");
     } else {
-      setStatus("This browser lacks WebCodecs. Use Chrome or Samsung Internet.");
+      setStatus("This browser cannot show the display. Use Chrome or Samsung Internet.");
     }
     return;
   }
+  setStatus("Waking the display…");
   ws = new WebSocket(`ws://${location.hostname}:8081`);
   ws.binaryType = "arraybuffer";
   ws.onmessage = (e) => handleMessage(e.data);
@@ -182,13 +188,37 @@ function updateHint() {
   hint.hidden = !!document.fullscreenElement || !decoder || decoder.state !== "configured";
 }
 
+function dismissA2hs() {
+  a2hs.hidden = true;
+  if (a2hsTimer) {
+    clearTimeout(a2hsTimer);
+    a2hsTimer = null;
+  }
+}
+
+function maybeOfferA2hs() {
+  if (a2hsOffered) return;
+  a2hsOffered = true;
+  try {
+    if (localStorage.getItem(A2HS_KEY)) return;
+  } catch (_) {}
+  const installed = window.matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches;
+  try { localStorage.setItem(A2HS_KEY, "1"); } catch (_) {}
+  if (installed) return;
+  a2hs.hidden = false;
+  a2hsTimer = setTimeout(dismissA2hs, 5000);
+}
+
 async function enterFullscreen() {
   if (document.fullscreenElement) return;
   try { await document.documentElement.requestFullscreen({ navigationUI: "hide" }); } catch (_) {}
   try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock("landscape"); } catch (_) {}
 }
 
-document.addEventListener("click", enterFullscreen);
+document.addEventListener("click", () => {
+  dismissA2hs();
+  enterFullscreen();
+});
 document.addEventListener("fullscreenchange", updateHint);
 
 async function acquireWakeLock() {

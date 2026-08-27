@@ -19,4 +19,13 @@ final class DisplayPresetTests: XCTestCase {
     func testThreePresets() {
         XCTAssertEqual(DisplayPreset.all.count, 3)
     }
+
+    func testMenuTitlesAreSharpBalancedCompatible() {
+        XCTAssertEqual(DisplayPreset.all.map(\.menuTitle), ["Sharp", "Balanced", "Compatible"])
+        XCTAssertEqual(DisplayPreset.default.menuTitle, "Sharp")
+        XCTAssertEqual(DisplayPreset.all[0].footnote, "2960×1848 HiDPI")
+        XCTAssertEqual(DisplayPreset.all[1].footnote, "2560×1600 HiDPI")
+        XCTAssertEqual(DisplayPreset.all[2].footnote, "1480×924 1×")
+        XCTAssertFalse(DisplayPreset.all.contains(where: { $0.menuTitle == "Resolution" }))
+    }
 }

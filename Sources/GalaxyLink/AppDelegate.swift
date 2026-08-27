@@ -1,8 +1,11 @@
 import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private static let firstLaunchKey = "pairing.didShowOnFirstLaunch"
+
     private var statusItem: NSStatusItem!
     private let controller = StreamController()
+    private var pairingPanel: PairingPanelController?
     private var currentPreset: DisplayPreset {
         get {
             let name = UserDefaults.standard.string(forKey: "preset.name")
@@ -19,70 +22,92 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onStatusChange = { [weak self] _ in
             DispatchQueue.main.async { self?.rebuildMenu() }
         }
+        controller.startServers()
+        pairingPanel = PairingPanelController(
+            onUseCable: { [weak self] in self?.enableUSB() },
+            onStart: { [weak self] in self?.startStreaming() }
+        )
         rebuildMenu()
+
+        if !UserDefaults.standard.bool(forKey: Self.firstLaunchKey) {
+            UserDefaults.standard.set(true, forKey: Self.firstLaunchKey)
+            pairingPanel?.present()
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        controller.stop()
+        controller.shutdown()
     }
 
     private func rebuildMenu() {
         let menu = NSMenu()
+        let streaming = controller.isStreaming
 
-        switch controller.status {
-        case .stopped:
-            menu.addItem(withTitle: "Status: stopped", action: nil, keyEquivalent: "")
-            menu.addItem(withTitle: "Start Streaming", action: #selector(startStreaming), keyEquivalent: "s")
-        case .running(let url):
-            menu.addItem(withTitle: "Status: streaming", action: nil, keyEquivalent: "")
-            let urlItem = menu.addItem(withTitle: "On the tablet, open: \(url)  (click to copy)",
-                                       action: #selector(copyURL(_:)), keyEquivalent: "c")
-            urlItem.representedObject = url
-            if let qr = QRCode.image(for: url) {
-                let item = NSMenuItem()
-                item.image = qr
-                menu.addItem(item)
-            }
-            menu.addItem(withTitle: "Stop Streaming", action: #selector(stopStreaming), keyEquivalent: "x")
-        case .failed(let message):
-            menu.addItem(withTitle: "Failed: \(message)", action: nil, keyEquivalent: "")
-            menu.addItem(withTitle: "Start Streaming", action: #selector(startStreaming), keyEquivalent: "s")
+        let statusLine = menu.addItem(withTitle: MenuCopy.statusLine(isOn: streaming),
+                                      action: nil, keyEquivalent: "")
+        statusLine.isEnabled = false
+
+        if case .failed(let message) = controller.status {
+            let fail = menu.addItem(withTitle: message, action: nil, keyEquivalent: "")
+            fail.isEnabled = false
         }
+
+        if streaming {
+            menu.addItem(withTitle: MenuCopy.stop, action: #selector(stopStreaming), keyEquivalent: "x")
+        } else {
+            menu.addItem(withTitle: MenuCopy.start, action: #selector(startStreaming), keyEquivalent: "s")
+        }
+        menu.addItem(withTitle: MenuCopy.showPairing, action: #selector(showPairing), keyEquivalent: "p")
 
         menu.addItem(.separator())
         let presetMenu = NSMenu()
         for preset in DisplayPreset.all {
-            let item = presetMenu.addItem(withTitle: preset.name, action: #selector(selectPreset(_:)), keyEquivalent: "")
+            let item = NSMenuItem()
+            item.attributedTitle = Self.presetAttributedTitle(preset)
+            item.action = #selector(selectPreset(_:))
             item.representedObject = preset.name
             item.state = preset == currentPreset ? .on : .off
             item.target = self
+            presetMenu.addItem(item)
         }
-        let presetItem = menu.addItem(withTitle: "Resolution", action: nil, keyEquivalent: "")
+        let presetItem = menu.addItem(withTitle: "\(currentPreset.menuTitle) ▾", action: nil, keyEquivalent: "")
         menu.setSubmenu(presetMenu, for: presetItem)
 
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Enable USB Mode (adb)", action: #selector(enableUSB), keyEquivalent: "u")
+        menu.addItem(withTitle: MenuCopy.useACable, action: #selector(enableUSB), keyEquivalent: "u")
 
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit GalaxyLink", action: #selector(quit), keyEquivalent: "q")
+        menu.addItem(withTitle: MenuCopy.quit, action: #selector(quit), keyEquivalent: "q")
         menu.items.forEach { $0.target = $0.target ?? self }
         statusItem.menu = menu
+    }
+
+    private static func presetAttributedTitle(_ preset: DisplayPreset) -> NSAttributedString {
+        var name = preset.menuTitle
+        if preset == .default { name += " (default)" }
+        let title = NSMutableAttributedString(string: name, attributes: [
+            .font: NSFont.menuFont(ofSize: 0),
+            .foregroundColor: NSColor.labelColor,
+        ])
+        title.append(NSAttributedString(string: "\n\(preset.footnote)", attributes: [
+            .font: NSFont.menuFont(ofSize: NSFont.smallSystemFontSize),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ]))
+        return title
     }
 
     @objc private func startStreaming() { controller.start(preset: currentPreset) }
     @objc private func stopStreaming() { controller.stop() }
 
-    @objc private func copyURL(_ sender: NSMenuItem) {
-        guard let url = sender.representedObject as? String else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(url, forType: .string)
+    @objc private func showPairing() {
+        pairingPanel?.present()
     }
 
     @objc private func selectPreset(_ sender: NSMenuItem) {
         guard let name = sender.representedObject as? String,
               let preset = DisplayPreset.all.first(where: { $0.name == name }) else { return }
         currentPreset = preset
-        if case .running = controller.status { controller.start(preset: preset) }
+        if controller.isStreaming { controller.start(preset: preset) }
         rebuildMenu()
     }
 
@@ -106,7 +131,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func quit() {
-        controller.stop()
+        controller.shutdown()
         NSApp.terminate(nil)
     }
 }

@@ -34,6 +34,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>GalaxyLink captures a virtual display to stream it as a second screen to your tablet.</string>
 </dict>
 </plist>
 PLIST

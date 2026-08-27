@@ -100,6 +100,7 @@ if arguments.contains("--serve") {
         }
     }
     print("Preset: \(preset.name)")
+    controller.startServers()
     controller.start(preset: preset)
     print("Serving. Ctrl-C to quit.")
     RunLoop.main.run()

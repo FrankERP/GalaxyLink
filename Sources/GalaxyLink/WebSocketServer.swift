@@ -40,7 +40,12 @@ final class WebSocketServer {
             listener = nil
             clients.values.forEach { $0.connection.cancel() }
             clients.removeAll()
+            lastConfig = nil
         }
+    }
+
+    func resetBroadcastState() {
+        queue.sync { lastConfig = nil }
     }
 
     func broadcastConfig(_ data: Data) {

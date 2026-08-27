@@ -159,13 +159,6 @@ function reconnect() {
   reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, 1000);
 }
 
-function websocketURL() {
-  if (location.protocol === "https:") {
-    return `wss://${location.hostname}:8444`;
-  }
-  return `ws://${location.hostname}:8081`;
-}
-
 function connect() {
   if (!("VideoDecoder" in window)) {
     if (!window.isSecureContext) {
@@ -176,7 +169,11 @@ function connect() {
     }
     return;
   }
-  ws = new WebSocket(websocketURL());
+  if (location.protocol === "https:") {
+    ws = new WebSocket(`wss://${location.host}`);
+  } else {
+    ws = new WebSocket(`ws://${location.hostname}:8081`);
+  }
   ws.binaryType = "arraybuffer";
   ws.onmessage = (e) => handleMessage(e.data);
   ws.onclose = reconnect;

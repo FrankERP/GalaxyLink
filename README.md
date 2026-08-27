@@ -1,7 +1,7 @@
 # GalaxyLink
 
-**Use an Android tablet as a real second monitor for your Mac** — over Wi-Fi or
-a USB cable, with nothing to install on the tablet.
+**Use an Android tablet as a real second monitor for your Mac.** Plug in a USB
+cable; nothing to install on the tablet.
 
 GalaxyLink is a macOS menu-bar app that creates a virtual display (macOS
 extends your desktop onto it exactly like a plugged-in monitor), captures it at
@@ -13,10 +13,10 @@ with a WebCodecs-capable browser (current Chrome / Samsung Internet) works.
   Display settings, not a mirror.
 - **Sharp and smooth** — 2960×1848 @ 60 fps, hardware encode/decode end to
   end, WebGL rendering on the tablet.
-- **Zero-install client** — the tablet just opens a URL (installable as a
-  fullscreen PWA). QR code in the menu for easy pairing.
-- **Wi-Fi or USB** — USB (`adb reverse`) gives the lowest, most consistent
-  latency.
+- **Zero-install client** — the tablet opens `http://localhost:8080`
+  (installable as a fullscreen PWA).
+- **USB** — **Use a cable** on the pairing card, then `http://localhost:8080`
+  on the tablet. Same Wi-Fi is collapsed there, not the path.
 - **No third-party dependencies** — Swift + Network.framework +
   ScreenCaptureKit + VideoToolbox, one static HTML/JS client.
 
@@ -28,7 +28,7 @@ with a WebCodecs-capable browser (current Chrome / Samsung Internet) works.
 │                     Embedded HTTP + WebSocket server               │
 │                     (ports 8080 http / 8081 ws)                    │
 └───────────────────────────────────┬────────────────────────────────┘
-                    Wi-Fi (LAN)  or  USB (adb reverse)
+                    Wi-Fi (LAN)  or  Use a cable
 ┌───────────────────────────────────┴────────────────────────────────┐
 │ Tablet browser: WebSocket → WebCodecs VideoDecoder → WebGL canvas  │
 │ Fullscreen + wake lock + auto-reconnect (single static page / PWA) │
@@ -44,8 +44,9 @@ with a WebCodecs-capable browser (current Chrome / Samsung Internet) works.
   target the Galaxy Tab S10 Ultra's 2960×1848 panel; for a different device,
   adjust `Sources/GalaxyLink/DisplayPreset.swift` (PRs welcome for a custom
   resolution UI).
-- Same Wi-Fi network as the Mac, **or** a USB cable (see USB mode; also needs
-  `adb`: `brew install android-platform-tools`).
+- A USB cable. USB debugging on the tablet, and `adb` on the Mac
+  (`brew install android-platform-tools`). Same Wi-Fi is optional and is not
+  the first-run path.
 
 ## Install
 
@@ -57,63 +58,69 @@ cp -R dist/GalaxyLink.app /Applications/
 open /Applications/GalaxyLink.app
 ```
 
-A **⬒** icon appears in the menu bar. Optional: add GalaxyLink to
+`make_app.sh` ad-hoc signs the app so the Screen Recording grant survives
+rebuilds. A **⬒** icon appears in the menu bar. Optional: add GalaxyLink to
 **System Settings ▸ General ▸ Login Items** so it starts at login.
-
-**First run:** the first *Start Streaming* triggers the macOS
-**Screen Recording** permission prompt. Grant it in System Settings ▸ Privacy
-& Security ▸ Screen Recording, then start streaming again. The app is ad-hoc
-signed by `make_app.sh`, so the grant survives rebuilds.
 
 ## Usage
 
-1. Menu bar ▸ **⬒ ▸ Start Streaming**. A "GalaxyLink" display appears in
-   System Settings ▸ Displays — arrange it like any monitor.
-2. On the tablet, open the URL shown in the menu (click to copy) or scan the
-   QR code.
-3. Tap anywhere on the stream for fullscreen.
-4. Nicer: Chrome ⋮ ▸ **Add to Home screen** installs it as a PWA — launching
-   from that icon is fullscreen from the first frame.
+On first launch the pairing card opens (window title **GalaxyLink**). HTTP
+and WebSocket listeners are already up, so the tablet can load the page
+before capture starts. The card is also **Show pairing** in the menu later.
 
-Pick a resolution preset under **⬒ ▸ Resolution**:
+What you see:
 
-| Preset | Pixels | UI looks like | Use when |
-|---|---|---|---|
-| Best (default) | 2960×1848 | 1480×924 @2x | Native sharpness |
-| Balanced | 2560×1600 | 1280×800 @2x | Lower latency / older tablets |
-| Compatibility | 1480×924 | 1480×924 @1x | Fallback |
-
-### Wi-Fi mode
-
-Works out of the box **except** for one browser flag: WebCodecs requires a
-"secure context", and the Wi-Fi URL is plain HTTP. On the tablet, open
-`chrome://flags/#unsafely-treat-insecure-origin-as-secure`, add the GalaxyLink
-URL (e.g. `http://192.168.1.23:8080`), set it to **Enabled**, relaunch Chrome.
-Redo this if the Mac's IP changes. (USB mode needs no flag — `localhost` is
-already a secure context.)
-
-### USB mode (lowest latency)
+- **Your second screen** (once)
+- **Plug in the tablet.**
+- **Use a cable** (primary)
+- copyable `http://localhost:8080`
+- If Screen Recording is missing: **GalaxyLink needs Screen Recording** and
+  **Open Settings** on that same card
+- **Start** (secondary)
+- **Same Wi-Fi** collapsed — not the path.
 
 One-time tablet setup: Settings ▸ About tablet ▸ Software information ▸ tap
-**Build number** 7× to enable Developer options, then Developer options ▸
-**USB debugging** on. On the Mac: `brew install android-platform-tools`.
+**Build number** 7×, then Developer options ▸ **USB debugging** on. On the
+Mac: `brew install android-platform-tools`.
 
-Then: connect the cable (USB mode "File transfer", accept the debugging
-prompt), click **⬒ ▸ Enable USB Mode (adb)**, and open
-`http://localhost:8080` on the tablet. Works with Wi-Fi off entirely.
-Re-run *Enable USB Mode* after re-plugging the cable.
+1. Plug in the tablet (USB file transfer; accept the debugging prompt).
+2. **Use a cable.** Success is **Cable ready.** on the card, not a modal. If
+   nothing is attached: **No tablet. Plug in, turn on USB debugging, try
+   again.** If `adb` is missing: **adb not found**.
+3. On the tablet, open `http://localhost:8080`. Overlay: **Waking the
+   display…**
+4. **Start.** A GalaxyLink display appears in System Settings ▸ Displays —
+   arrange it like any monitor. The pairing card returns on the next launch
+   until this first successful Start; dismissing it does not skip first-run.
+5. Tap for fullscreen. Once, if it is not already installed: **Add to Home
+   screen for a real monitor**.
+
+Re-run **Use a cable** after re-plugging the cable.
+
+After that first Start, the menu is **GalaxyLink · Off** / **On**, **Start**
+/ **Stop**, **Show pairing**, **Sharp** (default) / **Balanced** /
+**Compatible**, **Use a cable**, **Quit**.
+
+If the tablet overlay instead says **This tablet needs a trusted
+connection.** / **Plug this tablet into the Mac.**, it opened a LAN URL.
+Plug the tablet into the Mac and use `http://localhost:8080`. Reconnect
+copy is **Looking for your Mac…**
 
 ## Troubleshooting
 
-- **"WebCodecs needs a secure context"** → you're on Wi-Fi without the Chrome
-  flag above, or use USB mode instead.
+- **"This tablet needs a trusted connection."** → the tablet is not on
+  localhost (plain LAN HTTP is not a secure context). Cable +
+  `http://localhost:8080`.
+- **"Looking for your Mac…"** → stream is not up, or the cable dropped.
+  **Start**, and **Use a cable** again after re-plugging.
 - **Stutter or artifacts** → append `?stats=1` to the URL for a live overlay
   (received / decoded / painted fps + decode queue). Low `recv` = network or
-  encoder; low `paint` = tablet rendering; try the Balanced preset.
+  encoder; low `paint` = tablet rendering; try **Balanced**.
 - **Black screen on connect** → should not happen (the server re-encodes the
-  last frame for late joiners); check that the Mac app shows *streaming*.
-- **Capture permission loops** → System Settings ▸ Privacy & Security ▸
-  Screen Recording, toggle GalaxyLink off and on.
+  last frame for late joiners); check that the menu shows **GalaxyLink · On**.
+- **Capture permission loops** → pairing card **Open Settings**, or System
+  Settings ▸ Privacy & Security ▸ Screen Recording, toggle GalaxyLink off
+  and on.
 - Developer probes: `swift run GalaxyLink --probe-display`,
   `--probe-capture`, `--probe-api`, and
   `swift run GalaxyLink --serve [--preset balanced|compat]` for headless runs.
@@ -124,8 +131,8 @@ Re-run *Enable USB Mode* after re-plugging the cable.
   macOS blanks protected video whenever any screen-capture session is active —
   on every screen, regardless of player app or capture filter (verified:
   excluding the app from the capture filter does not help). This affects every
-  capture-based mirror. Workaround: *Stop Streaming* while watching; the
-  tablet auto-reconnects afterwards.
+  capture-based mirror. Workaround: **Stop** while watching; the tablet
+  auto-reconnects afterwards.
 - **Display only** — tablet touch / S Pen does not control the Mac (yet); the
   wire protocol reserves frame types `0x10+` for future input events.
 - **Private API**: the virtual display uses the private `CGVirtualDisplay`
@@ -133,7 +140,12 @@ Re-run *Enable USB Mode* after re-plugging the cable.
   could change it; all usage is isolated in
   `Sources/GalaxyLink/VirtualDisplay.swift`. This also rules out App Store
   distribution.
+- **Ad-hoc signing** via `./scripts/make_app.sh`. There is no notarized
+  download.
 - Single client at full quality; no audio.
+- LAN HTTP is not a secure context, so Wi-Fi still needs
+  `chrome://flags/#unsafely-treat-insecure-origin-as-secure`; the product path
+  is a cable.
 
 ## How it works / contributing
 

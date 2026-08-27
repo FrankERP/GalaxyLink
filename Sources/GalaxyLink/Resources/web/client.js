@@ -63,7 +63,6 @@ const detailEl = document.getElementById("detail");
 const hint = document.getElementById("hint");
 const a2hs = document.getElementById("a2hs");
 const A2HS_KEY = "galaxylink.homescreenHint";
-let a2hsTimer = null;
 let a2hsOffered = false;
 
 let ws = null;
@@ -169,7 +168,7 @@ function reconnect() {
 function connect() {
   if (!("VideoDecoder" in window)) {
     if (!window.isSecureContext) {
-      setStatus("This tablet needs a trusted connection.", "Use a cable.");
+      setStatus("This tablet needs a trusted connection.", "Plug this tablet into the Mac.");
     } else {
       setStatus("This browser cannot show the display. Use Chrome or Samsung Internet.");
     }
@@ -189,11 +188,9 @@ function updateHint() {
 }
 
 function dismissA2hs() {
+  if (a2hs.hidden) return;
   a2hs.hidden = true;
-  if (a2hsTimer) {
-    clearTimeout(a2hsTimer);
-    a2hsTimer = null;
-  }
+  try { localStorage.setItem(A2HS_KEY, "1"); } catch (_) {}
 }
 
 function maybeOfferA2hs() {
@@ -203,10 +200,8 @@ function maybeOfferA2hs() {
     if (localStorage.getItem(A2HS_KEY)) return;
   } catch (_) {}
   const installed = window.matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches;
-  try { localStorage.setItem(A2HS_KEY, "1"); } catch (_) {}
   if (installed) return;
   a2hs.hidden = false;
-  a2hsTimer = setTimeout(dismissA2hs, 5000);
 }
 
 async function enterFullscreen() {

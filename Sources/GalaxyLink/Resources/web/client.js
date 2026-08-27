@@ -159,18 +159,24 @@ function reconnect() {
   reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, 1000);
 }
 
+function websocketURL() {
+  if (location.protocol === "https:") {
+    return `wss://${location.hostname}:8444`;
+  }
+  return `ws://${location.hostname}:8081`;
+}
+
 function connect() {
   if (!("VideoDecoder" in window)) {
     if (!window.isSecureContext) {
-      setStatus("WebCodecs needs a secure context, and plain http:// over the network is not one. " +
-                "Either use USB mode (open http://localhost:8080 via adb reverse), or in Chrome enable " +
-                "chrome://flags/#unsafely-treat-insecure-origin-as-secure for " + location.origin + " and relaunch.");
+      setStatus("WebCodecs needs a secure context. Open the HTTPS URL from the Mac menu (not http). " +
+                "If Chrome warns about the certificate, tap Advanced, then Proceed.");
     } else {
       setStatus("This browser lacks WebCodecs. Use Chrome or Samsung Internet.");
     }
     return;
   }
-  ws = new WebSocket(`ws://${location.hostname}:8081`);
+  ws = new WebSocket(websocketURL());
   ws.binaryType = "arraybuffer";
   ws.onmessage = (e) => handleMessage(e.data);
   ws.onclose = reconnect;
